@@ -7,7 +7,6 @@ import numpy as np
 st.set_page_config(layout='wide', initial_sidebar_state="collapsed", page_title="Sanguiche Sales Reports")
 st.title("Sanguiche Sales Reports")
 
-
 def load_sales_data():
     sales = pd.read_csv("data/sales.csv")
     # Date to datetimeobject
@@ -41,10 +40,17 @@ end_input = date_input[1]
 # Define sales DF as between the date ranges selected
 sales = sales.loc[sales['Date'].between(start_input, end_input)]
 
-# Define differetn category DFs
-sandwich_sales = sales[sales['Category'] == 'Sandwiches']
-sides = sales[sales['Category'] == 'Sides']
-addon_sales = sales[sales['Category'] == 'Add Ons']
+def sales_line_graph(df):
+    sales['Gross Sales'] = sales['Gross Sales'].str.replace('$','').astype(float)
+    _ = df.groupby('Date')['Gross Sales'].agg(list).to_dict()
+    sales_by_day_dict = {k:sum(v) for k, v in _.items()}
+    days = list(sales_by_day_dict.keys())
+    sales_totals = list(sales_by_day_dict.values())
+    fig = px.line(df, x=days, y=sales_totals)
+
+    return st.plotly_chart(fig, use_container_width=True)
+
+sales_line_graph(sales)
 
 def sales_by_item_barchart(df):
     # make items and total sales dictionary
@@ -64,14 +70,25 @@ def sales_by_item_barchart(df):
     return st.plotly_chart(fig, use_container_width=True)
 
 
+# Define different category DFs
+sandwich_sales = sales[sales['Category'] == 'Sandwiches']
+sides = sales[sales['Category'] == 'Sides']
+addon_sales = sales[sales['Category'] == 'Add Ons']
+
+# Define quantity totals
+num_sandwiches = sandwich_sales['Qty'].sum()
+num_sides = sides['Qty'].sum()
+num_addon = addon_sales['Qty'].sum()
+
+# Streamlit structure
 st.header(f"Sales by item for {date_input[0]} to {date_input[1]}")
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.subheader("Sandwich sales totals")
+    st.subheader(f"# Sandwiches Sold: {int(num_sandwiches)}")
     sales_by_item_barchart(sandwich_sales)
 with col2:
-    st.subheader("Sides sales totals")
+    st.subheader(f"# Sides Sold: {int(num_sides)}")
     sales_by_item_barchart(sides)
 with col3:
-    st.subheader("Add-on sales totals")
+    st.subheader(f"# Add-ons Sold: {int(num_addon)}")
     sales_by_item_barchart(addon_sales)
