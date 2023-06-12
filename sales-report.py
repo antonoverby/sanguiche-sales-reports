@@ -7,6 +7,7 @@ import numpy as np
 st.set_page_config(layout='wide', initial_sidebar_state="collapsed", page_title="Sanguiche Sales Reports")
 st.title("Sanguiche Sales Reports")
 
+# LOAD AND TRANSFORM DATA SECTION ############################## 
 def load_sales_data():
     sales = pd.read_csv("data/sales.csv")
     # Date to datetimeobject
@@ -23,15 +24,18 @@ def load_sales_data():
     sides = ['Single Meatball', 'Mozz Stix', 'Meatball Slider', 'Eggplant Fries', 'Garlic Bread', 'Zapps']
     sales['Category'] = np.where((sales['Category'].isnull()) & (sales['Item'].isin(sandwiches)), 'Sandwiches', sales['Category'])
     sales['Category'] = np.where((sales['Category'].isnull()) & (sales['Item'].isin(sides)), 'Sides', sales['Category'])
+    # Take out "Custom Amount" category of items
+    sales = sales[sales['Item'].str.contains("Custom Amount") == False]
 
     return sales
 
 sales = load_sales_data()
+###################################################################
 
-# Date range picker
+# DATE RANGE PICKER SECTION ######################################
 start_date = datetime(2023, 6, 1)
 end_date = datetime.now()
-date_input = st.date_input("Select a date range", value=(start_date, end_date))
+date_input = st.date_input("Select a date range (double click a date to see one day)", value=(start_date, end_date))
 if len(date_input) != 2:
     st.stop()
 start_input = date_input[0]
@@ -39,19 +43,35 @@ end_input = date_input[1]
     
 # Define sales DF as between the date ranges selected
 sales = sales.loc[sales['Date'].between(start_input, end_input)]
+###################################################################
 
+# TOTAL SALES BY DAY SECTION #####################################
 def sales_line_graph(df):
     sales['Gross Sales'] = sales['Gross Sales'].str.replace('$','').astype(float)
     _ = df.groupby('Date')['Gross Sales'].agg(list).to_dict()
     sales_by_day_dict = {k:sum(v) for k, v in _.items()}
     days = list(sales_by_day_dict.keys())
     sales_totals = list(sales_by_day_dict.values())
-    fig = px.line(df, x=days, y=sales_totals)
-
+    fig = px.line(df, x=days, y=sales_totals, text=sales_totals,
+                  labels={
+                      "x":"Date",
+                      "y":"Sales"
+                  })
+    max_dict_value = max(sales_by_day_dict.values())
+    fig.update_xaxes(tickformatstops=[
+        dict(dtickrange=[None, 86400000], value="%b %d\n%Y")
+    ])
+    fig.update_yaxes(range=(0, max_dict_value + 300))
+    fig.update_traces(texttemplate='%{y}', textposition='top center')
     return st.plotly_chart(fig, use_container_width=True)
 
-sales_line_graph(sales)
+st.header("Food Sales Totals by Day")
+st.write("*doesn't include Custom Amount items")
 
+sales_line_graph(sales)
+###################################################################
+
+# SALES BY ITEM CATEGORY SECTION ##################################
 def sales_by_item_barchart(df):
     # make items and total sales dictionary
     _ = df.groupby('Item')['Qty'].agg(list).to_dict()
@@ -80,15 +100,24 @@ num_sandwiches = sandwich_sales['Qty'].sum()
 num_sides = sides['Qty'].sum()
 num_addon = addon_sales['Qty'].sum()
 
-# Streamlit structure
 st.header(f"Sales by item for {date_input[0]} to {date_input[1]}")
 col1, col2, col3 = st.columns(3)
 with col1:
     st.subheader(f"# Sandwiches Sold: {int(num_sandwiches)}")
-    sales_by_item_barchart(sandwich_sales)
+    try:
+        sales_by_item_barchart(sandwich_sales)
+    except ValueError as e:
+        st.write("There's no data to display")
 with col2:
     st.subheader(f"# Sides Sold: {int(num_sides)}")
-    sales_by_item_barchart(sides)
+    try:
+        sales_by_item_barchart(sides)
+    except ValueError as e:
+        st.write("There's no data to display")
 with col3:
     st.subheader(f"# Add-ons Sold: {int(num_addon)}")
-    sales_by_item_barchart(addon_sales)
+    try:
+        sales_by_item_barchart(addon_sales)
+    except ValueError as e:
+        st.write("There's no data to display")
+###################################################################
