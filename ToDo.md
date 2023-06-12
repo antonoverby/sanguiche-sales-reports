@@ -1,5 +1,6 @@
 # To Do:
 
+## Questions to Answer
 - Weekly Grocery list
     - How many groceries should we buy this week based on trends from a range of time?
 - Daily Prep list
@@ -7,3 +8,6 @@
 - Time of day trends?
     - Are there times of day that are more popular?
     - Are there categories of items more popular at certain times?
+
+## Structural Stuff
+- If only one date is chosen, line graph should turn into a bar graph
