@@ -26,6 +26,8 @@ def load_sales_data():
     sales['Category'] = np.where((sales['Category'].isnull()) & (sales['Item'].isin(sides)), 'Sides', sales['Category'])
     # Take out "Custom Amount" category of items
     sales = sales[sales['Item'].str.contains("Custom Amount") == False]
+    # Gross Sales to float
+    sales['Gross Sales'] = sales['Gross Sales'].str.replace('$','').astype(float)
 
     return sales
 
@@ -47,7 +49,6 @@ sales = sales.loc[sales['Date'].between(start_input, end_input)]
 
 # TOTAL SALES BY DAY SECTION #####################################
 def sales_line_graph(df):
-    sales['Gross Sales'] = sales['Gross Sales'].str.replace('$','').astype(float)
     _ = df.groupby('Date')['Gross Sales'].agg(list).to_dict()
     sales_by_day_dict = {k:sum(v) for k, v in _.items()}
     days = list(sales_by_day_dict.keys())
@@ -65,10 +66,25 @@ def sales_line_graph(df):
     fig.update_traces(texttemplate='%{y}', textposition='top center')
     return st.plotly_chart(fig, use_container_width=True)
 
-st.header("Food Sales Totals by Day")
-st.write("*doesn't include Custom Amount items")
+def sales_metrics(df):
+    num_days = len(df['Date'].unique())
+    sum_sales = df['Gross Sales'].sum()
+    avg_sales_per_day = sum_sales/num_days
 
+    return avg_sales_per_day
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Food Sales Totals by Day")
+    st.write("*doesn't include Custom Amount items")
+with col2:
+    st.subheader("Sales Metrics:")
+    avg_sales_per_day = sales_metrics(sales)
+    st.write(f"Average sales per day: {round(avg_sales_per_day,2)}")
+    
 sales_line_graph(sales)
+
 ###################################################################
 
 # SALES BY ITEM CATEGORY SECTION ##################################
