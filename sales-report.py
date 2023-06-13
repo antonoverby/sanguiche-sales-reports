@@ -59,9 +59,12 @@ def sales_line_graph(df):
                       "y":"Sales"
                   })
     max_dict_value = max(sales_by_day_dict.values())
-    fig.update_xaxes(tickformatstops=[
-        dict(dtickrange=[None, 86400000], value="%b %d\n%Y")
-    ])
+    num_days = len(df['Date'].unique())
+    fig.update_xaxes(dtick="D1",
+                     tickformatstops=[
+        dict(dtickrange=[None, 86400000], value="%a %b %d %Y")
+    ]
+    )
     fig.update_yaxes(range=(0, max_dict_value + 300))
     fig.update_traces(texttemplate='%{y}', textposition='top center')
     return st.plotly_chart(fig, use_container_width=True)
@@ -84,7 +87,6 @@ with col2:
     st.write(f"Average sales per day: {round(avg_sales_per_day,2)}")
     
 sales_line_graph(sales)
-
 ###################################################################
 
 # SALES BY ITEM CATEGORY SECTION ##################################
@@ -104,7 +106,6 @@ def sales_by_item_barchart(df):
     fig.update_yaxes(range=(0, max_dict_value + 5))
     fig.update_traces(texttemplate='%{y}', textposition='outside')
     return st.plotly_chart(fig, use_container_width=True)
-
 
 # Define different category DFs
 sandwich_sales = sales[sales['Category'] == 'Sandwiches']
