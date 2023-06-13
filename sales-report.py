@@ -32,7 +32,7 @@ def load_sales_data():
     return sales
 
 sales = load_sales_data()
-###################################################################
+##################################################################
 
 # DATE RANGE PICKER SECTION ######################################
 start_date = datetime(2023, 6, 1)
@@ -45,7 +45,7 @@ end_input = date_input[1]
     
 # Define sales DF as between the date ranges selected
 sales = sales.loc[sales['Date'].between(start_input, end_input)]
-###################################################################
+##################################################################
 
 # TOTAL SALES BY DAY SECTION #####################################
 def sales_line_graph(df):
@@ -53,13 +53,12 @@ def sales_line_graph(df):
     sales_by_day_dict = {k:sum(v) for k, v in _.items()}
     days = list(sales_by_day_dict.keys())
     sales_totals = list(sales_by_day_dict.values())
-    fig = px.line(df, x=days, y=sales_totals, text=sales_totals,
+    fig = px.line(df, x=days, y=sales_totals, text=sales_totals, markers=True,
                   labels={
                       "x":"Date",
                       "y":"Sales"
                   })
     max_dict_value = max(sales_by_day_dict.values())
-    num_days = len(df['Date'].unique())
     fig.update_xaxes(dtick="D1",
                      tickformatstops=[
         dict(dtickrange=[None, 86400000], value="%a %b %d %Y")
@@ -79,17 +78,22 @@ def sales_metrics(df):
 col1, col2 = st.columns(2)
 
 with col1:
-    st.subheader("Food Sales Totals by Day")
-    st.write("*doesn't include Custom Amount items")
+    st.subheader("Food Sales Totals by Day", help="*doesn't include Custom Amount items")
 with col2:
     st.subheader("Sales Metrics:")
     avg_sales_per_day = sales_metrics(sales)
     st.write(f"Average sales per day: {round(avg_sales_per_day,2)}")
-    
-sales_line_graph(sales)
-###################################################################
 
-# SALES BY ITEM CATEGORY SECTION ##################################
+try:    
+    sales_line_graph(sales)
+except ValueError as e:
+    st.header("This date has no data. Please select a date or date range where sales occurred.")
+    st.write(e)
+    st.stop()
+    
+##################################################################
+
+# SALES BY ITEM CATEGORY SECTION #################################
 def sales_by_item_barchart(df):
     # make items and total sales dictionary
     _ = df.groupby('Item')['Qty'].agg(list).to_dict()
@@ -137,4 +141,4 @@ with col3:
         sales_by_item_barchart(addon_sales)
     except ValueError as e:
         st.write("There's no data to display")
-###################################################################
+##################################################################
