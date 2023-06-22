@@ -10,7 +10,7 @@
     - Are there categories of items more popular at certain times?
 
 ## Visual Stuff
-- Item total by day line
+- [x]Item total by day line
     - Can I collapse dates that have all 0s?
 - [x] rolling average line on total sales
 

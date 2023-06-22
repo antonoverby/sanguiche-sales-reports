@@ -93,26 +93,32 @@ except ValueError as e:
     
 ##################################################################
 
-# # SALES BY ITEM OVER TIME ########################################
-# def item_sales_line(df, roll_avg_win: int, category="Sandwiches" or "Sides" or "Add Ons"):
-#     item_by_day = df.groupby(['Date', 'Item', 'Category'], as_index=False)['Qty'].sum()
-#     cat_df = item_by_day[item_by_day['Category'] == category]
-#     # cat_df['MovAvg'] = cat_df['Qty'].rolling(roll_avg_win, min_periods=1).mean().round(1)
-#     fig = px.line(cat_df, x=[day for day in cat_df['Date']], y='Qty', color='Item')
-#     fig.update_traces(mode="lines+markers")
-#     max_value = cat_df['Qty'].max()
-#     fig.update_yaxes(range=(0, max_value + 1))
-#     fig.update_layout(showlegend=False)
+# SALES BY ITEM OVER TIME ########################################
+def cum_item_sales_line(df, y_buffer: int, category="Sandwiches" or "Sides" or "Add Ons"):
+    item_by_day = df.groupby(['Date', 'Item', 'Category'], as_index=False)['Qty'].sum()
+    item_by_day['CumSum'] = item_by_day.groupby('Item')['Qty'].cumsum()
+    item_by_day = item_by_day[item_by_day['Category'] == category]
+    fig = px.line(item_by_day, x='Date', y='CumSum', color='Item', 
+                  labels={
+                      'x':'Date',
+                      'y':'CumSum'
+                  })
+    fig.update_traces(mode='lines+markers')
+    max_value = item_by_day['CumSum'].max()
+    fig.update_yaxes(range=(0, max_value + y_buffer))
+    
+    return st.plotly_chart(fig, use_container_width=True)
 
-#     return st.plotly_chart(fig, use_container_width=True)
+st.header(f"Cumulative sales by item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
 
-# col1, col2, col3 = st.columns(3)
-# with col1:
-#     item_sales_line(sales, category="Sandwiches", roll_avg_win=3)
-# with col2:
-#     item_sales_line(sales, category="Sides", roll_avg_win=3)
-# with col3:
-#     item_sales_line(sales, category="Add Ons", roll_avg_win=3)
+col1, col2, col3 = st.columns(3)
+with col1:
+    cum_item_sales_line(sales,category="Sandwiches", y_buffer=5)
+with col2:
+    cum_item_sales_line(sales, category="Sides", y_buffer=5)
+with col3:
+    cum_item_sales_line(sales, category="Add Ons", y_buffer=2)
+
 # ##################################################################
 
 # SALES BY ITEM CATEGORY SECTION #################################
