@@ -48,16 +48,21 @@ sales = sales.loc[sales['Date'].between(start_input, end_input)]
 ##################################################################
 
 # TOTAL SALES BY DAY SECTION #####################################
-def sales_line_graph(df):
+def sales_bar_graph(df, roll_avg_win: int):
     _ = df.groupby('Date')['Gross Sales'].agg(list).to_dict()
     sales_by_day_dict = {k:sum(v) for k, v in _.items()}
-    days = list(sales_by_day_dict.keys())
-    sales_totals = list(sales_by_day_dict.values())
-    fig = px.line(df, x=days, y=sales_totals, text=sales_totals, markers=True,
+    sales_df = pd.DataFrame.from_dict(list(sales_by_day_dict.items()))
+    sales_df.columns = ['Date', 'SumTot']
+    sales_df['MovAvg'] = sales_df['SumTot'].rolling(roll_avg_win).mean()
+    fig = px.bar(df, x=[day.strftime("%Y/%m/%d")for day in sales_df['Date']], y=sales_df['SumTot'], text=sales_df['SumTot'],
                   labels={
                       "x":"Date",
                       "y":"Sales"
                   })
+    fig.update_traces(texttemplate='%{y}', textposition='outside')
+    fig.add_traces(
+        px.scatter(sales_df, x=[day.strftime("%Y/%m/%d")for day in sales_df['Date']], y=sales_df['MovAvg']).update_traces(mode='lines+markers', line=dict(color='red'), marker=dict(color='red')).data
+                  )
     max_dict_value = max(sales_by_day_dict.values())
     fig.update_xaxes(dtick="D1",
                      tickformatstops=[
@@ -65,7 +70,7 @@ def sales_line_graph(df):
     ]
     )
     fig.update_yaxes(range=(0, max_dict_value + 300))
-    fig.update_traces(texttemplate='%{y}', textposition='top center')
+    
     return st.plotly_chart(fig, use_container_width=True)
 
 def sales_metrics(df):
@@ -75,17 +80,10 @@ def sales_metrics(df):
 
     return avg_sales_per_day
 
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("Food Sales Totals by Day", help="*doesn't include Custom Amount items")
-with col2:
-    st.subheader("Sales Metrics:")
-    avg_sales_per_day = sales_metrics(sales)
-    st.write(f"Average sales per day: {round(avg_sales_per_day,2)}")
+st.subheader("Food Sales Totals by Day", help="*doesn't include Custom Amount items")
 
 try:    
-    sales_line_graph(sales)
+    sales_bar_graph(sales, roll_avg_win=3)
 except ValueError as e:
     st.header("This date has no data. Please select a date or date range where sales occurred.")
     st.write(e)
