@@ -4,7 +4,7 @@ import plotly.express as px
 from datetime import datetime
 import numpy as np
 
-st.set_page_config(layout='wide', initial_sidebar_state="collapsed", page_title="Sanguiche Sales Reports")
+st.set_page_config(layout='wide', initial_sidebar_state="expanded", page_title="Sanguiche Sales Reports")
 st.title("Sanguiche Sales Reports")
 
 # LOAD AND TRANSFORM DATA SECTION ############################## 
@@ -37,6 +37,7 @@ sales = load_sales_data()
 # DATE RANGE PICKER SECTION ######################################
 start_date = datetime(2023, 6, 1)
 end_date = datetime.now()
+st.subheader("Filters")
 date_input = st.date_input("Select a date range (double click a date to see one day)", value=(start_date, end_date))
 if len(date_input) != 2:
     st.stop()
@@ -53,7 +54,7 @@ def sales_bar_graph(df, roll_avg_win: int):
     sales_by_day_dict = {k:sum(v) for k, v in _.items()}
     sales_df = pd.DataFrame.from_dict(list(sales_by_day_dict.items()))
     sales_df.columns = ['Date', 'SumTot']
-    sales_df['MovAvg'] = sales_df['SumTot'].rolling(roll_avg_win).mean()
+    sales_df['MovAvg'] = sales_df['SumTot'].rolling(roll_avg_win, min_periods=1).mean()
     fig = px.bar(df, x=[day.strftime("%Y/%m/%d")for day in sales_df['Date']], y=sales_df['SumTot'], text=sales_df['SumTot'],
                   labels={
                       "x":"Date",
@@ -80,7 +81,8 @@ def sales_metrics(df):
 
     return avg_sales_per_day
 
-st.subheader("Food Sales Totals by Day", help="*doesn't include Custom Amount items")
+st.subheader(f"Total sales for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}", help="*doesn't include Custom Amount items")
+st.write("*rolling average line in red")
 
 try:    
     sales_bar_graph(sales, roll_avg_win=3)
@@ -91,8 +93,30 @@ except ValueError as e:
     
 ##################################################################
 
+# # SALES BY ITEM OVER TIME ########################################
+# def item_sales_line(df, roll_avg_win: int, category="Sandwiches" or "Sides" or "Add Ons"):
+#     item_by_day = df.groupby(['Date', 'Item', 'Category'], as_index=False)['Qty'].sum()
+#     cat_df = item_by_day[item_by_day['Category'] == category]
+#     # cat_df['MovAvg'] = cat_df['Qty'].rolling(roll_avg_win, min_periods=1).mean().round(1)
+#     fig = px.line(cat_df, x=[day for day in cat_df['Date']], y='Qty', color='Item')
+#     fig.update_traces(mode="lines+markers")
+#     max_value = cat_df['Qty'].max()
+#     fig.update_yaxes(range=(0, max_value + 1))
+#     fig.update_layout(showlegend=False)
+
+#     return st.plotly_chart(fig, use_container_width=True)
+
+# col1, col2, col3 = st.columns(3)
+# with col1:
+#     item_sales_line(sales, category="Sandwiches", roll_avg_win=3)
+# with col2:
+#     item_sales_line(sales, category="Sides", roll_avg_win=3)
+# with col3:
+#     item_sales_line(sales, category="Add Ons", roll_avg_win=3)
+# ##################################################################
+
 # SALES BY ITEM CATEGORY SECTION #################################
-def sales_by_item_barchart(df):
+def sales_by_item_barchart(df, y_buffer: int):
     # make items and total sales dictionary
     _ = df.groupby('Item')['Qty'].agg(list).to_dict()
     item_sales_dict = {k:sum(v) for k, v in _.items()}
@@ -105,7 +129,7 @@ def sales_by_item_barchart(df):
                      "y": "Number Sold"
                  })
     fig.update_xaxes(categoryorder='total descending')
-    fig.update_yaxes(range=(0, max_dict_value + 5))
+    fig.update_yaxes(range=(0, max_dict_value + y_buffer))
     fig.update_traces(texttemplate='%{y}', textposition='outside')
     return st.plotly_chart(fig, use_container_width=True)
 
@@ -119,24 +143,24 @@ num_sandwiches = sandwich_sales['Qty'].sum()
 num_sides = sides['Qty'].sum()
 num_addon = addon_sales['Qty'].sum()
 
-st.header(f"Sales by item for {date_input[0]} to {date_input[1]}")
+st.header(f"Sales by item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
 col1, col2, col3 = st.columns(3)
 with col1:
     st.subheader(f"# Sandwiches Sold: {int(num_sandwiches)}")
     try:
-        sales_by_item_barchart(sandwich_sales)
+        sales_by_item_barchart(sandwich_sales, y_buffer=10)
     except ValueError as e:
         st.write("There's no data to display")
 with col2:
     st.subheader(f"# Sides Sold: {int(num_sides)}")
     try:
-        sales_by_item_barchart(sides)
+        sales_by_item_barchart(sides, y_buffer=10)
     except ValueError as e:
         st.write("There's no data to display")
 with col3:
     st.subheader(f"# Add-ons Sold: {int(num_addon)}")
     try:
-        sales_by_item_barchart(addon_sales)
+        sales_by_item_barchart(addon_sales, y_buffer=3)
     except ValueError as e:
         st.write("There's no data to display")
 ##################################################################
