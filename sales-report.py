@@ -87,7 +87,7 @@ st.write("*rolling average line in red")
 try:    
     sales_bar_graph(sales, roll_avg_win=3)
 except ValueError as e:
-    st.header("This date has no data. Please select a date or date range where sales occurred.")
+    st.subheader("This date has no data. Please select a date or date range where sales occurred.")
     st.write(e)
     st.stop()
     
@@ -109,7 +109,7 @@ def cum_item_sales_line(df, y_buffer: int, category="Sandwiches" or "Sides" or "
     
     return st.plotly_chart(fig, use_container_width=True)
 
-st.header(f"Cumulative sales by item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
+st.subheader(f"Cumulative sales by item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -149,7 +149,7 @@ num_sandwiches = sandwich_sales['Qty'].sum()
 num_sides = sides['Qty'].sum()
 num_addon = addon_sales['Qty'].sum()
 
-st.header(f"Sales by item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
+st.subheader(f"Sales by item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
 col1, col2, col3 = st.columns(3)
 with col1:
     st.subheader(f"# Sandwiches Sold: {int(num_sandwiches)}")
