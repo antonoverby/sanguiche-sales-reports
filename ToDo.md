@@ -1,8 +1,6 @@
 # To Do:
 
 ## Questions to Answer
-- Weekly Grocery list
-    - How many groceries should we buy this week based on trends from a range of time?
 - Daily Prep list
     - How many items should we be prepared to make given trends from a range of time?
 - Time of day trends?
@@ -10,6 +8,7 @@
     - Are there categories of items more popular at certain times?
 
 ## Visual Stuff
+- Get rid of time label on x axis of Items Over Time
 - [x]Item total by day line
     - Can I collapse dates that have all 0s?
 - [x] rolling average line on total sales

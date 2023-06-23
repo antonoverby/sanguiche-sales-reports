@@ -6,6 +6,8 @@ import numpy as np
 
 st.set_page_config(layout='wide', initial_sidebar_state="expanded", page_title="Sanguiche Sales Reports")
 st.title("Sanguiche Sales Reports")
+st.markdown("#### Choose a reporting date range below and use the sidebar to choose which graphs to see")
+st.sidebar.subheader("Pick which graphs to see")
 
 # LOAD AND TRANSFORM DATA SECTION ############################## 
 def load_sales_data():
@@ -37,10 +39,13 @@ sales = load_sales_data()
 # DATE RANGE PICKER SECTION ######################################
 start_date = datetime(2023, 6, 1)
 end_date = datetime.now()
-st.subheader("Filters")
-date_input = st.date_input("Select a date range (double click a date to see one day)", value=(start_date, end_date))
-if len(date_input) != 2:
-    st.stop()
+with st.expander("**Report Date Range**"):
+    col1, col2 = st.columns([1,2])
+    with col1:
+        st.subheader("Report Date Range")
+        date_input = st.date_input("(Double click a date to see one day)", value=(start_date, end_date))
+        if len(date_input) != 2:
+            st.stop()
 start_input = date_input[0]
 end_input = date_input[1]
     
@@ -59,7 +64,8 @@ def sales_bar_graph(df, roll_avg_win: int):
                   labels={
                       "x":"Date",
                       "y":"Sales"
-                  })
+                  },
+                  title='Sales by Day')
     fig.update_traces(texttemplate='%{y}', textposition='outside')
     fig.add_traces(
         px.scatter(sales_df, x=[day.strftime("%Y/%m/%d")for day in sales_df['Date']], y=sales_df['MovAvg']).update_traces(mode='lines+markers', line=dict(color='red'), marker=dict(color='red')).data
@@ -70,7 +76,7 @@ def sales_bar_graph(df, roll_avg_win: int):
         dict(dtickrange=[None, 86400000], value="%a %b %d %Y")
     ]
     )
-    fig.update_yaxes(range=(0, max_dict_value + 300))
+    fig.update_yaxes(range=(0, max_dict_value + 100))
     
     return st.plotly_chart(fig, use_container_width=True)
 
@@ -81,16 +87,18 @@ def sales_metrics(df):
 
     return avg_sales_per_day
 
-st.subheader(f"Total sales for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}", help="*doesn't include Custom Amount items")
-st.write("*rolling average line in red")
+sales_tot_graph = st.sidebar.checkbox(label='Sales Totals by Day')
+if sales_tot_graph:
+    st.subheader(f"Total sales for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}", help="*doesn't include Custom Amount items")
+    st.write("*rolling average line in red")
 
-try:    
-    sales_bar_graph(sales, roll_avg_win=3)
-except ValueError as e:
-    st.subheader("This date has no data. Please select a date or date range where sales occurred.")
-    st.write(e)
-    st.stop()
-    
+    try:    
+        sales_bar_graph(sales, roll_avg_win=4)
+    except ValueError as e:
+        st.subheader("This date has no data. Please select a date or date range where sales occurred.")
+        st.write(e)
+        st.stop()
+
 ##################################################################
 
 # SALES BY ITEM OVER TIME ########################################
@@ -109,14 +117,15 @@ def cum_item_sales_line(df, y_buffer: int, category="Sandwiches" or "Sides" or "
     
     return st.plotly_chart(fig, use_container_width=True)
 
-st.subheader(f"Cumulative sales by item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
-
-col1, col2, col3 = st.columns(3)
-with col1:
+item_time_graph = st.sidebar.checkbox(label='Item Sales Over Time')
+if item_time_graph:
+    st.subheader(f"Cumulative sales by item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
+    
+    st.subheader("Sandwiches")
     cum_item_sales_line(sales,category="Sandwiches", y_buffer=5)
-with col2:
+    st.subheader('Sides')
     cum_item_sales_line(sales, category="Sides", y_buffer=5)
-with col3:
+    st.subheader('Add Ons')
     cum_item_sales_line(sales, category="Add Ons", y_buffer=2)
 
 # ##################################################################
@@ -149,21 +158,23 @@ num_sandwiches = sandwich_sales['Qty'].sum()
 num_sides = sides['Qty'].sum()
 num_addon = addon_sales['Qty'].sum()
 
-st.subheader(f"Sales by item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
-col1, col2, col3 = st.columns(3)
-with col1:
+item_tot_graph = st.sidebar.checkbox(label='Item Totals')
+if item_tot_graph:
+    st.subheader(f"Sales by item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
+    
+    
     st.subheader(f"# Sandwiches Sold: {int(num_sandwiches)}")
     try:
         sales_by_item_barchart(sandwich_sales, y_buffer=10)
     except ValueError as e:
         st.write("There's no data to display")
-with col2:
+    
     st.subheader(f"# Sides Sold: {int(num_sides)}")
     try:
         sales_by_item_barchart(sides, y_buffer=10)
     except ValueError as e:
         st.write("There's no data to display")
-with col3:
+
     st.subheader(f"# Add-ons Sold: {int(num_addon)}")
     try:
         sales_by_item_barchart(addon_sales, y_buffer=3)
