@@ -80,13 +80,6 @@ def sales_bar_graph(df, roll_avg_win: int):
     
     return st.plotly_chart(fig, use_container_width=True)
 
-def sales_metrics(df):
-    num_days = len(df['Date'].unique())
-    sum_sales = df['Gross Sales'].sum()
-    avg_sales_per_day = sum_sales/num_days
-
-    return avg_sales_per_day
-
 sales_tot_graph = st.sidebar.checkbox(label='Sales Totals by Day')
 if sales_tot_graph:
     st.subheader(f"Total sales for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}", help="*doesn't include Custom Amount items")
@@ -99,6 +92,66 @@ if sales_tot_graph:
         st.write(e)
         st.stop()
 
+##################################################################
+
+# DAY OF WEEK AVG SALES ##########################################
+def dow_avg_sales_bar(df):
+    _ = df.groupby('Date')['Gross Sales'].agg(list).to_dict()
+    sales_by_day_dict = {k:sum(v) for k, v in _.items()}
+    sales_df = pd.DataFrame.from_dict(list(sales_by_day_dict.items()))
+    sales_df.columns = ['Date', 'SalesAvg']
+    sales_df['Date'] = pd.to_datetime(sales_df['Date'])
+    sales_df['DayofWeek'] = sales_df['Date'].dt.day_name()
+    dow_avg = round(sales_df.groupby('DayofWeek')['SalesAvg'].mean(), 2)
+    dow_avg = pd.Series.to_frame(dow_avg)
+
+    fig = px.bar(dow_avg, x=dow_avg.index, y='SalesAvg')
+    fig.update_xaxes(categoryorder='array', categoryarray=['Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday'])
+    fig.update_traces(texttemplate='%{y}', textposition='outside')
+
+    return st.plotly_chart(fig, use_container_width=True)
+
+dow_avg_graph = st.sidebar.checkbox(label='Sales Avg - Day of the Week')
+if dow_avg_graph:
+    st.subheader(f"Average Sales Totals by Day of the Week for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
+    st.write("**Note**: Choosing one week as date range will show total sales figures, not an average")
+    
+    try:    
+        dow_avg_sales_bar(sales)
+    except ValueError as e:
+        st.subheader("This date has no data. Please select a date or date range where sales occurred.")
+        st.write(e)
+        st.stop()
+
+##################################################################
+
+# SALES BY HOUR OF DAY ###########################################
+def tod_sales_bar(df):
+    _ = sales.groupby('Time')['Qty'].agg(list).to_dict()
+    sales_by_day_dict = {k:sum(v) for k, v in _.items()}
+    sales_df = pd.DataFrame.from_dict(list(sales_by_day_dict.items()))
+    sales_df.columns = ['Time', 'Sales']
+    sales_df['Time'] = pd.to_datetime(sales_df['Time'])
+    sales_df['Hour'] = sales_df['Time'].dt.hour
+    tod_avg = sales_df.groupby('Hour')['Sales'].sum()
+    tod_avg = pd.Series.to_frame(tod_avg)
+
+    fig = px.bar(tod_avg, x=tod_avg.index, y='Sales')
+    fig.update_xaxes(tickmode='linear')    
+    fig.update_traces(texttemplate='%{y}', textposition='outside')
+
+    return st.plotly_chart(fig, use_container_width=True)
+
+tod_avg_graph = st.sidebar.checkbox(label='Sales - Hour of the Day')
+if tod_avg_graph:
+    st.subheader(f"Total Sales by Hour of the Day for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
+    
+    try:    
+        tod_sales_bar(sales)
+    except ValueError as e:
+        st.subheader("This date has no data. Please select a date or date range where sales occurred.")
+        st.write(e)
+        st.stop()
 ##################################################################
 
 # SALES BY ITEM OVER TIME ########################################
@@ -119,7 +172,7 @@ def cum_item_sales_line(df, y_buffer: int, category="Sandwiches" or "Sides" or "
 
 item_time_graph = st.sidebar.checkbox(label='Item Sales Over Time')
 if item_time_graph:
-    st.subheader(f"Cumulative sales by item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
+    st.subheader(f"Cumulative Sales by Item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
     
     st.subheader("Sandwiches")
     cum_item_sales_line(sales,category="Sandwiches", y_buffer=5)
@@ -158,10 +211,9 @@ num_sandwiches = sandwich_sales['Qty'].sum()
 num_sides = sides['Qty'].sum()
 num_addon = addon_sales['Qty'].sum()
 
-item_tot_graph = st.sidebar.checkbox(label='Item Totals')
+item_tot_graph = st.sidebar.checkbox(label='Item Sales Totals')
 if item_tot_graph:
-    st.subheader(f"Sales by item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
-    
+    st.subheader(f"Total Sales by Item for {date_input[0].strftime('%m/%d/%Y')} to {date_input[1].strftime('%m/%d/%Y')}")
     
     st.subheader(f"# Sandwiches Sold: {int(num_sandwiches)}")
     try:
@@ -181,3 +233,30 @@ if item_tot_graph:
     except ValueError as e:
         st.write("There's no data to display")
 ##################################################################
+
+# # SCHEDULING DATA INPUT ##########################################
+# def sched_input_table():
+#     df = pd.DataFrame(columns=['Date', 'Employee'])
+#     df = st.data_editor(df, use_container_width=True, num_rows='dynamic',
+#                         column_config={
+#                             'Date': st.column_config.DateColumn(),
+#                             'Employee': st.column_config.SelectboxColumn(options=['Alex', 'Anton', 'Mike', 'Randal', 'Sam'])
+#                         })
+
+#     return df
+
+# @st.cache_data
+# def sched_to_csv(df):
+#     return df.to_csv().encode('utf-8')
+
+# sched = sched_input_table()
+# sched_csv = sched_to_csv(sched)
+
+# st.download_button(
+#     label='Download Schedule to CSV',
+#     data=sched_csv,
+#     file_name='sched.csv',
+#     mime='text/csv'
+#     )
+
+# ##################################################################
