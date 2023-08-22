@@ -217,19 +217,19 @@ if item_tot_graph:
     
     st.subheader(f"# Sandwiches Sold: {int(num_sandwiches)}")
     try:
-        sales_by_item_barchart(sandwich_sales, y_buffer=10)
+        sales_by_item_barchart(sandwich_sales, y_buffer=30)
     except ValueError as e:
         st.write("There's no data to display")
     
     st.subheader(f"# Sides Sold: {int(num_sides)}")
     try:
-        sales_by_item_barchart(sides, y_buffer=10)
+        sales_by_item_barchart(sides, y_buffer=30)
     except ValueError as e:
         st.write("There's no data to display")
 
     st.subheader(f"# Add-ons Sold: {int(num_addon)}")
     try:
-        sales_by_item_barchart(addon_sales, y_buffer=3)
+        sales_by_item_barchart(addon_sales, y_buffer=5)
     except ValueError as e:
         st.write("There's no data to display")
 ##################################################################
